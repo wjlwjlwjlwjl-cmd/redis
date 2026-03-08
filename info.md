@@ -66,7 +66,7 @@
 比较，但是通过embstr的话就要转化为数字之后再进行比较
 ## 2. hash
 (1) hashtable，以redis自己的方式做的哈希表<br>
-(2) ziplist，压缩表，有些类似于std::vecotr，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）
+(2) ziplist，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）
 ## 3. list
 (1) 以前的版本采用的是linkedlist + ziplist实现，redis3.2以后，采取quicklist的实现方式，类似于std::deque
 ## 4. set
@@ -112,11 +112,21 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 (1) 获取字符串类型的value的长度，单位是字节，对于中文也是具体字节而不是字符的个数
 # Redis中的hash类型
 redis中的hash，使用field-value表示键值的结构，其中，value的类型只允许是字符串
-# 1. hset、hget、hexists、hdel
+## 1. hset、hget、hexists、hdel
 (1) hset keyname fieldname value，表示keyname用来查找这个哈希表，fieldname是哈希表的键值。
 (2) hget keyname fieldname，获取keyname的哈希表的fieldname所对应的值
 (3) hexists keyname fieldname，判断keyname对应的哈希表是否具有fieldname的键值
 (4) hdel keyname fieldname，删除keyname对应的哈希表的fieldname键值
-# 2. hkeys、hvals
+## 2. hkeys、hvals
 hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key对应的哈希表中的所有value值。尽量不要使用这些操作，
 和keys *有异曲同工之妙
+## hlen、hsetnx、hincrby、hincrbyfloat
+1. hlen keyname，用来查询哈希表的大小<br>
+2. hsetnx，不存在则插入，存在则失败<br>
+3. hincrby，哈希表中某个value + n，只适合处理数字类型的value<br>
+4. hincrbyfloat，哈希表中某个值增加，可以是小数
+## 使用哈希存储的场景
+1. 当作结构体/对象使用，存储一个具有多个属性的对象，可以节省分开存的key的个数，适合存结构化的数据，而且只需要
+改一个字段，不需要将整个字段读出来再写回去
+2. 与数据库相比，使用哈希存储具有稀疏性，不需要的字段就不存；但是对于数据库而言，在一个表中，即使某个对象不具有某个值
+也许要用null来占位
