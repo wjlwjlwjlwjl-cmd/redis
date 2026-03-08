@@ -5,10 +5,15 @@
 4. msyql数据库的主从分离与读写分离：读的需求是要远大于写的需求的，所以只有主库接受写的请求，并将发生改变的内容同步到从库，从库不负责处理写的请求，负责读的请求，上层也可以引入负载均衡的策略对读节点进行选择
 # redis存放、获取键值的操作
 ## 1. 存放键值对
-redis中，key都是字符串，value可以是各种类型。存放键值对，使用set keyname keyvalue；redis不区分大小写，也不需要
+(1) redis中，key都是字符串，value可以是各种类型。存放键值对，使用set keyname keyvalue；redis不区分大小写，也不需要
 注意单双引号的问题，写不写都可以。
+(2) set keyname value [ex seconds | px milliseconds] [nx|xx]，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示
+(3) mset keyname value [keyname value] 设置多组键值对
+(4) setnx setex psetex
+有设置keyname则不插入，xx表示只在keyname存在时修改value
 ## 2. 获取键值对
-redis中，获取键值对使用get，通过get keyname的方式获取
+(1) redis中，获取键值对使用get，通过get keyname的方式获取
+(2) mget，获取多组键值对
 ### 获取键值对时的匹配原则
 * <strong>?</strong>表示任意一个字符，如key可由ke?检索出来
 * <strong>*</strong>表示任意多个字符，使用其实和Linux检索文件名时使用一样
@@ -57,7 +62,8 @@ redis中，获取键值对使用get，通过get keyname的方式获取
 ## 1. string
 (1) raw，就是字符串的形式存储<br> 
 (2) int，如果字符串中存储的是数字的话，就直接作为数字存储<br>
-(3) embstr，对于短字符串做出优化的存储方式
+(3) embstr，对于短字符串做出优化的存储方式，也负责存储小数，这也意味着性能的损失，因为整数通过int的方式存储直接就可以
+比较，但是通过embstr的话就要转化为数字之后再进行比较
 ## 2. hash
 (1) hashtable，以redis自己的方式做的哈希表<br>
 (2) ziplist，压缩表，有些类似于std::vecotr，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）
@@ -80,5 +86,37 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 就差了几个数量级，因此redis自然更快
 2. redis提供的功能相对要少一些，比如mysql插入的时候如果有约束的话还要射击先查询的过程，查询的时候还有多表联查
 等等操作，在功能和业务上的区别，也是造成差异的原因
-
-
+# string 类型
+## 1. incr和incrby
+(1) incr，表示给相应value + 1，只有实际类型是int的才可以<br>
+(2) incrby，表示给相应value + n，n必须是整数，可以是负数
+(3) 如果key不存在，就从零开始处理
+## 2. decr和decrby
+(1) 除了进行的是减操作以外，其他的都是和incr与incrby一样的
+## 3. incrbyfloat
+可以进行小数和整数的操作，如果需要减操作，使用负数即可
+## 4. append
+(1) 对字符串进行追加操作，并返回追加之后的长度 <br>
+(2) 对于redis来说，不会对我们的数据进行字符集上的处理，因此输入中文的话默认打出的就是原编码，所以可以在启动客户端
+的时候加上--raw指令，让客户端尝试解读返回的二进制数据并展示，就能够完成中文的显示了
+## 5. getrange
+(1) getrange keyname start end，表示获取[start, end]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
+，因为无论是utf8还是gbk都是多字节编码一个中文字符 <br>
+(2) 当end是负数时，表示倒数第几个字符，例如-1表示倒数第一个字符 <br>
+(3) 根据两个端点的情况，redis会自动截取内容（数字同理），但是如果最后出现start > end时，会导致解析不出内容
+## 6. setrange
+(1) setrange key start value，设置从start开始的内容为value，具体设置到哪里取决于value的长度<br>
+(2) 如果设置的key不存在，那么就根据start的值，用空格填充前面的内容；如果start超过了当前内容的长度，也是同理往后
+添加用空格补全长度
+## 7. strlen
+(1) 获取字符串类型的value的长度，单位是字节，对于中文也是具体字节而不是字符的个数
+# Redis中的hash类型
+redis中的hash，使用field-value表示键值的结构，其中，value的类型只允许是字符串
+# 1. hset、hget、hexists、hdel
+(1) hset keyname fieldname value，表示keyname用来查找这个哈希表，fieldname是哈希表的键值。
+(2) hget keyname fieldname，获取keyname的哈希表的fieldname所对应的值
+(3) hexists keyname fieldname，判断keyname对应的哈希表是否具有fieldname的键值
+(4) hdel keyname fieldname，删除keyname对应的哈希表的fieldname键值
+# 2. hkeys、hvals
+hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key对应的哈希表中的所有value值。尽量不要使用这些操作，
+和keys *有异曲同工之妙
