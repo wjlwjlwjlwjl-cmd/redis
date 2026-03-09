@@ -66,7 +66,7 @@
 比较，但是通过embstr的话就要转化为数字之后再进行比较
 ## 2. hash
 (1) hashtable，以redis自己的方式做的哈希表<br>
-(2) ziplist，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）
+(2) ziplist，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）压缩表通过内部的优化，将数据按照更紧凑的方式进行表示，当数据增多时，会导致效率下降
 ## 3. list
 (1) 以前的版本采用的是linkedlist + ziplist实现，redis3.2以后，采取quicklist的实现方式，类似于std::deque
 ## 4. set
@@ -128,5 +128,30 @@ hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key
 ## 使用哈希存储的场景
 1. 当作结构体/对象使用，存储一个具有多个属性的对象，可以节省分开存的key的个数，适合存结构化的数据，而且只需要
 改一个字段，不需要将整个字段读出来再写回去
-2. 与数据库相比，使用哈希存储具有稀疏性，不需要的字段就不存；但是对于数据库而言，在一个表中，即使某个对象不具有某个值
-也许要用null来占位
+2. 与数据库相比，使用哈希存储具有稀疏性，不需要的字段就不存；但是对于数据库而言，在一个表中，即使某个对象不具有某个值也需要用null来占位
+
+# 列表
+列表类似于顺序表的使用，实现容器类似于deque，提升插入、删除的效率
+## lpush lpop rpush rpop
+push_front pop_front push_back pop_back
+## lrem lindex lrange
+1. lrem key count value，表示将key列表中的count个value（有多少删多少）删除并返回
+2. lrange key start stop，表示将key列表中[start, stop]的下标的内容返回（显示查询出结果的时候，前面带的数字不是下标，是结果集的序号），当下标超出的时候会取余调整
+3. lindex key index，表示获得key列表中下标为index的元素
+## lpushx 和 rpushx
+1. x代表exist，如果列表存在的话插入，否则插入失败
+## lpop 和 rpop
+1. lpop keyname [count]，从左端删除，后面的count在低版本的不支持<br>
+2. rpop keyname [count]，从右端删除<br>
+3. 与lpush和rpush搭配就可以当作栈、队列使用
+## linsert
+linsert keyname [before|after] pivot value, pivot是从左到右寻找的一个值(如果没有找到就插入失败)
+## lrem
+lrem keyname count element，count > 0时，从左到右移除count个元素；count == 0，移除列表中所有element相等的元素；count < 0时，从右向左移除count个元素
+## ltrim 和 lset
+1. ltrim，ltrim keyname start stop 截取[start, stop]的区间之后，剩下部分丢弃
+2. lset，lset keyname index element 将index下标设置为element，其中index超过范围时，会报错
+## blpop 和 brpop
+1. 两者都是阻塞等待，但是在redis中，首先第一点，这两个阻塞是特殊的，并不会影响redis核心逻辑的工作，第二点就是这个阻塞队列并不会考虑队列满的情况，只会考虑队列为空的阻塞<br>
+2. blpop keyname timeout，0表示一直阻塞等待，以秒为单位等待<br>
+3. 两者可以同时等待多个队列，从左到右第一个有数据出队列时返回
