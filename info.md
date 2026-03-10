@@ -70,7 +70,7 @@
 ## 3. list
 (1) 以前的版本采用的是linkedlist + ziplist实现，redis3.2以后，采取quicklist的实现方式，类似于std::deque
 ## 4. set
-(1) hashtable (2) intset，当集合中只存储整数的时候，就是用这种结构
+(1) hashtable (2) intset整数集合，当集合中数据较少而且只存储整数的时候，就是用这种结构
 ## 5. zset
 (1) skiplist，跳表，类似于链表，但是每个节点有多个指针域，使之能够实现logN的查询效率
 (2) ziplist
@@ -156,9 +156,36 @@ lrem keyname count element，count > 0时，从左到右移除count个元素；c
 1. 两者都是阻塞等待，但是在redis中，首先第一点，这两个阻塞是特殊的，并不会影响redis核心逻辑的工作，第二点就是这个阻塞队列并不会考虑队列满的情况，只会考虑队列为空的阻塞<br>
 2. blpop keyname timeout，0表示一直阻塞等待，以秒为单位等待<br>
 3. 两者可以同时等待多个队列，从左到右第一个有数据出队列时返回
-# set
+## list列表的应用场景
+1. 时间轴、消息轴等，通过lpush插入最新内容，通过lrange完成分页获取，通过ltrim完成部分内容的保留
+2. 消息队列，通过lpush + brpop就可以完成阻塞队列的搭建
+
+# set集合
 set与列表相比，是无序的，意思是顺序不重要，同时set中不允许有相同元素，但是列表可以
-## sadd smember sismember
+## sadd smember sismember scard
 1. sadd key elements往set中添加元素
 2. smembers key，获取set中的所有元素
 3. sismember key member，判断一个value是否是key's set中的元素
+4. scard keyname，获取集合中的元素个数
+## spop srandmember
+1. spop  keyname，从set中随机获取一个元素并且从set中删除
+2. srandmember keyname，从set中随机获取一个元素，但是并不会删除set中的返回元素
+## srem smove
+1. srem keyname element，删除指定set中的指定元素
+2. smove source destination element，将source set中的element移动给element，如果移动destination中已经存在的元素也能移动成功，但是发生替换
+## sinter sinternstore 交集
+1. sinter setname1 setname2 ...，求出两者的交集
+2. sinterstore destination setname1 setname2 ...，求出两者的交集，放到destination集合中
+## sunion sunionstore sdiff sdiffstore
+分别取求并集和差集，使用方式与求交集相同
+## set的应用场景
+1. 用来存储用户画像，通过一个一个标签（其实就是小字符串）的形式存储在set当中
+2. 好友的推荐，因为set非常方便求交集，所以可以快速推荐共同好友等
+3. UV的统计（对于一个产品的评价，可以用两种方法来统计，一个是PV，另一个是UV；PV是page view，统计出用户每次访问服务器的次数，UV是userview，统计有多少用户访问了服务器，这意味着需要大量的去重操作，也是set擅长的）
+# zset
+zadd也是有序的，但是zadd的有序是真正的有顺序的，通过在插入时基于score的结构实现。score和member一一对应，类似std::pair
+## zadd
+1. zadd key [nx|xx] [gt|lt] [ch] [incr] score member [score member ...]
+2. 返回值的问题，zadd默认的返回值是新增元素的个数，但是如果设置了ch，就会返回修改元素的个数
+3. gt|lt，greater than | less than，前者是只有当前更新的score大于原来的score时才更新，后者反之
+4. nx|xx，nx表示当元素不存在时插入，xx表示只在元素存在时更新score
