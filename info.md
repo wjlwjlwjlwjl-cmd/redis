@@ -131,7 +131,8 @@ hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key
 2. 与数据库相比，使用哈希存储具有稀疏性，不需要的字段就不存；但是对于数据库而言，在一个表中，即使某个对象不具有某个值也需要用null来占位
 
 # 列表
-列表类似于顺序表的使用，实现容器类似于deque，提升插入、删除的效率
+* 列表类似于顺序表的使用，实现容器类似于deque，提升插入、删除的效率
+* 列表是有序的，意思是元素相同，顺序不一样就是两个列表
 ## lpush lpop rpush rpop
 push_front pop_front push_back pop_back
 ## lrem lindex lrange
@@ -155,3 +156,9 @@ lrem keyname count element，count > 0时，从左到右移除count个元素；c
 1. 两者都是阻塞等待，但是在redis中，首先第一点，这两个阻塞是特殊的，并不会影响redis核心逻辑的工作，第二点就是这个阻塞队列并不会考虑队列满的情况，只会考虑队列为空的阻塞<br>
 2. blpop keyname timeout，0表示一直阻塞等待，以秒为单位等待<br>
 3. 两者可以同时等待多个队列，从左到右第一个有数据出队列时返回
+# set
+set与列表相比，是无序的，意思是顺序不重要，同时set中不允许有相同元素，但是列表可以
+## sadd smember sismember
+1. sadd key elements往set中添加元素
+2. smembers key，获取set中的所有元素
+3. sismember key member，判断一个value是否是key's set中的元素
