@@ -7,8 +7,8 @@
 ## 1. 存放键值对
 (1) redis中，key都是字符串，value可以是各种类型。存放键值对，使用set keyname keyvalue；redis不区分大小写，也不需要
 注意单双引号的问题，写不写都可以。
-(2) set keyname value [ex seconds | px milliseconds] [nx|xx]，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示
-(3) mset keyname value [keyname value] 设置多组键值对
+(2) set keyname value \[ex seconds | px milliseconds\] \[nx|xx\]，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示
+(3) mset keyname value \[keyname value\] 设置多组键值对
 (4) setnx setex psetex
 有设置keyname则不插入，xx表示只在keyname存在时修改value
 ## 2. 获取键值对
@@ -17,9 +17,9 @@
 ### 获取键值对时的匹配原则
 * <strong>?</strong>表示任意一个字符，如key可由ke?检索出来
 * <strong>*</strong>表示任意多个字符，使用其实和Linux检索文件名时使用一样
-* <strong>[abcdefg]</strong>表示从中括号中的选项中匹配任意一个
-* <strong>[^e]</strong>表示不匹配e
-* <strong>[a-c]</strong>表示范围匹配
+* <strong>\[abcdefg\]</strong>表示从中括号中的选项中匹配任意一个
+* <strong>\[^e\]</strong>表示不匹配e
+* <strong>\[a-c\]</strong>表示范围匹配
 <p>但是实际开发中，几乎不会使用（禁止）*的方式，因为会检索整个redis中的所有key，而redis又是单线程的，
 所以可能会导致该线程阻塞在检索的过程中，导致大量请求从redis的缓存数据中取不出结果，都去向数据库发出请求，
 导致数据库压力过大挂掉</p>
@@ -100,7 +100,7 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 (2) 对于redis来说，不会对我们的数据进行字符集上的处理，因此输入中文的话默认打出的就是原编码，所以可以在启动客户端
 的时候加上--raw指令，让客户端尝试解读返回的二进制数据并展示，就能够完成中文的显示了
 ## 5. getrange
-(1) getrange keyname start end，表示获取[start, end]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
+(1) getrange keyname start end，表示获取\[start, end\]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
 ，因为无论是utf8还是gbk都是多字节编码一个中文字符 <br>
 (2) 当end是负数时，表示倒数第几个字符，例如-1表示倒数第一个字符 <br>
 (3) 根据两个端点的情况，redis会自动截取内容（数字同理），但是如果最后出现start > end时，会导致解析不出内容
@@ -137,20 +137,20 @@ hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key
 push_front pop_front push_back pop_back
 ## lrem lindex lrange
 1. lrem key count value，表示将key列表中的count个value（有多少删多少）删除并返回
-2. lrange key start stop，表示将key列表中[start, stop]的下标的内容返回（显示查询出结果的时候，前面带的数字不是下标，是结果集的序号），当下标超出的时候会取余调整
+2. lrange key start stop，表示将key列表中\[start, stop\]的下标的内容返回（显示查询出结果的时候，前面带的数字不是下标，是结果集的序号），当下标超出的时候会取余调整
 3. lindex key index，表示获得key列表中下标为index的元素
 ## lpushx 和 rpushx
 1. x代表exist，如果列表存在的话插入，否则插入失败
 ## lpop 和 rpop
-1. lpop keyname [count]，从左端删除，后面的count在低版本的不支持<br>
-2. rpop keyname [count]，从右端删除<br>
+1. lpop keyname \[count\]，从左端删除，后面的count在低版本的不支持<br>
+2. rpop keyname \[count\]，从右端删除<br>
 3. 与lpush和rpush搭配就可以当作栈、队列使用
 ## linsert
-linsert keyname [before|after] pivot value, pivot是从左到右寻找的一个值(如果没有找到就插入失败)
+linsert keyname \[before|after\] pivot value, pivot是从左到右寻找的一个值(如果没有找到就插入失败)
 ## lrem
 lrem keyname count element，count > 0时，从左到右移除count个元素；count == 0，移除列表中所有element相等的元素；count < 0时，从右向左移除count个元素
 ## ltrim 和 lset
-1. ltrim，ltrim keyname start stop 截取[start, stop]的区间之后，剩下部分丢弃
+1. ltrim，ltrim keyname start stop 截取\[start, stop\]的区间之后，剩下部分丢弃
 2. lset，lset keyname index element 将index下标设置为element，其中index超过范围时，会报错
 ## blpop 和 brpop
 1. 两者都是阻塞等待，但是在redis中，首先第一点，这两个阻塞是特殊的，并不会影响redis核心逻辑的工作，第二点就是这个阻塞队列并不会考虑队列满的情况，只会考虑队列为空的阻塞<br>
@@ -185,7 +185,37 @@ set与列表相比，是无序的，意思是顺序不重要，同时set中不�
 # zset
 zadd也是有序的，但是zadd的有序是真正的有顺序的，通过在插入时基于score的结构实现。score和member一一对应，类似std::pair
 ## zadd
-1. zadd key [nx|xx] [gt|lt] [ch] [incr] score member [score member ...]
+1. zadd key \[nx|xx\] \[gt|lt\] \[ch\] \[incr\] score member \[score member ...\]
 2. 返回值的问题，zadd默认的返回值是新增元素的个数，但是如果设置了ch，就会返回修改元素的个数
 3. gt|lt，greater than | less than，前者是只有当前更新的score大于原来的score时才更新，后者反之
-4. nx|xx，nx表示当元素不存在时插入，xx表示只在元素存在时更新score
+4. nx|xx，nx表示只新增不修改，xx表示只修改不新增
+5. incr使用类似于incrby，不过作用对象是score
+## zrange
+1. zrange key start end \[withscore\]，展示zset中的全部元素，withscores表示展示相应元素分数
+2. zrevrange key start end \[withscore\]，表示逆序展示(start, range)的member
+3. zrangebyscore key start end \[withscore\]，表示根据score从低到高排序展示member，前面两个start、end表示的是下标
+## zcount
+1. zcount key start end，用来统计某个score区间中member的个数，如果要表示一个数字是开区间的一端的话就在前面加上(，例如(2, 5)表示为(2 (5
+2. zcount支持使用正负无穷大作为最大值、最小值(-inf, inf);
+## zcard
+zcard key，统计member个数
+## zpopmax
+1. zset在redis中默认排的是升序，zpopmax会删除score最大的member，并返回删除的member和score
+2. zpopmax key \[count\]表示连续取count个最大member，时间复杂度O(logN * M);
+## bzpopmax
+1. bzpopmax key \[key...\] timeout，阻塞的取最大member，超时时间为timeout（0为一直阻塞），可以等待多个key，当任意一个有返回时，阻塞结束，因此时间复杂度是O(logN);
+## zpopmin bzpopmin
+两者使用和zpopmax、bapopmax相同，区别是操作的是zset中的最小值
+## zrank zrevrank zscore
+1. zrank key member \[withscore\]，查询member在有序列表中的下标，从前往后算，就和正常数组一样
+2. zrevrank key member withscore，查询member在有序数组中从后往前的下标，即最后一个元素下标为1
+3. zscore key member，查询member的分数，为了优化效率，redis牺牲空间，换取了该操作O(1)的时间复杂度
+## zrem zremrangebyrank zremrangebyscore
+1. zrem key member，删除member成员，时间复杂度O(logN);
+2. zremrangebyrank key start end，删除下标\[start, end\]的成员，时间复杂度O(logN + M)，因为只需要找到一个七点就可以往后删除
+3. zremrangebyscore key min max，删除分数\[min, max\]的成员，支持使用'('去指定开区间
+## zincrby
+1. zincrby key increment member，给member的分数增加increment，increment可以是小数，也可以是负数，表示减小分数
+## zinterstore 
+1. zinterstore destination keynum key \[key...\] weights \[weight...\] \[aggregate sum | min | max\]
+2. destination表示存储交集的名称，keynum用于指定一共有多少个key制定了要求交集的zset（类似于http协议报头中的content-length），weights表示接下来的内容用于指定权重，可以是整数也可以是小数，其与共同的member的score相乘后得到结果作为新的score，而具体怎么作用有aggregate后的内容决定，默认是sum，新的score由所有的相加形成，min为所有的score的最小值，max为最大值
