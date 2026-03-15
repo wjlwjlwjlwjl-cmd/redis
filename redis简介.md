@@ -341,7 +341,7 @@ zset也是有序的，但是zset的有序是真正的有顺序的，通过在插
 
 1. destination表示存储交集的名称，keynum用于指定一共有多少个key制定了要求交集的zset（类似于http协议报头中的content-length），weights表示接下来的内容用于指定权重，可以是整数也可以是小数，其与共同的member的score相乘后得到结果作为新的score，而具体怎么作用有aggregate后的内容决定，默认是sum，新的score由所有的相加形成，min为所有的score的最小值，max为最大值
 2. 在最坏情况下，时间复杂度为`O(N*K) + O(M*log(M))`，其中N为最小集合的元素个数，K为求交集的元素个数，M为最后交集中
-  元素的个数
+    元素的个数
 
 ### zunionstore
 
@@ -420,3 +420,37 @@ BulkString，以$开头，相比Simple String可以传输二进制数据
 ```
 
 Array，以*开头
+
+
+
+## Redis-plus-plus
+
+1. 声明redis连接对象
+
+   ```cpp
+   #include <sw/redis++/redis.h>
+   sw::redis::Redis redis("tcp://127.17.0.1:6379");
+   ```
+
+   
+
+2. 使用ping方法检查连通性
+
+   ```cpp
+   std::string ret = redis.ping(); std::cout << ret << std::endl;
+   ```
+
+   
+
+3. get、set方法
+
+   ```cpp
+   sw::redis::Redis redis("tcp://127.17.0.1:6379");
+   redis.set("key1", "val1");
+   auto ret = redis.get("key1");
+   if(ret) std::cout << ret.value() << std::endl;
+   ```
+
+   
+
+   * set方法基本使用通过传入`sw::redis::StringView`的key、val即可设置简单键值对，`StringView`使用类似于`std::string`，但是他是只读的而且效率更高；返回值的类型是`sw::redis::OptionalString`，其中`Optional`表示无效值，没有采用`std::string`的原因是一方面如果直接采用对象的话，那么无法很好的表示`nil`，另一方面如果返回对象指针，还要设计内存指向空间是否有效的问题。`sw::redis::OptionString`在结果有效时，可以通过`value()`接口获取返回内容，同时失败的情况也可通过他隐式转换为`bool`判断
