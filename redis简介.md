@@ -453,4 +453,50 @@ Array，以*开头
 
    
 
-   * set方法基本使用通过传入`sw::redis::StringView`的key、val即可设置简单键值对，`StringView`使用类似于`std::string`，但是他是只读的而且效率更高；返回值的类型是`sw::redis::OptionalString`，其中`Optional`表示无效值，没有采用`std::string`的原因是一方面如果直接采用对象的话，那么无法很好的表示`nil`，另一方面如果返回对象指针，还要设计内存指向空间是否有效的问题。`sw::redis::OptionString`在结果有效时，可以通过`value()`接口获取返回内容，同时失败的情况也可通过他隐式转换为`bool`判断
+   * set方法基本使用通过传入`sw::redis::StringView`的key、val即可设置简单键值对，`StringView`使用类似于`std::string`，但是他是只读的而且效率更高；返回值的类型是`sw::redis::OptionalString`，其中`Optional`表示无效值，没有采用`std::string`的原因是一方面如果直接采用对象的话，那么无法很好的表示`nil`，另一方面如果返回对象指针，还要设计内存指向空间是否有效的问题。`sw::redis::OptionString`在结果有效时，可以通过`value()`接口获取返回内容，同时失败的情况也可通过他隐式转换为`bool`来得知
+
+4. exists和del
+
+   ```cpp
+   sw::redis::Redis redis("tcp://127.0.0.1:6379");
+   auto ret = redis.exists("key1");
+   ret = redis.del({"key1", "key2"});
+   ```
+
+   
+
+* `exists`判断一个key是否存在，存在返回1，失败返回0
+* `del`删除key，返回删除key的数目
+
+5. keys
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+vector<string> ret; auto it = std::back_inserter(ret);
+redis.keys("*", it);
+```
+
+`keys`用来获取所有的key，通过第一个参数的匹配规则来检索，方法和前面命令行中介绍的五种一样；同时为了解耦合，第二个参数要求传入输出型数据结构的尾插迭代器
+
+
+
+6. expire和ttl
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+using namespace std::chrono_literals;
+bool ret = redis.expire("key", 10s);  std::this_thread::sleep_for(5s);
+long long len = redis.ttl("key");
+```
+
+* `expire`用来设置过期时间，通过`std::chrono`给定
+* `ttl`用来判断剩余生存时间，以秒为单位。已经过期的key，返回值为-1；不存在的key，返回值为-2
+
+7. type
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+redis.set("key", "val");
+std::string ret = redis.type("key");
+```
+
