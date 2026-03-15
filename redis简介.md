@@ -1,7 +1,7 @@
 ## redis简介
 
 1. 相比如mysql，redis也可以当作数据库来使用，而且更快，因为是内存中的数据库，但是和mysql相比，具有存储空间小
-  的问题，因为内存空间远小于硬盘空间
+    的问题，因为内存空间远小于硬盘空间
 2. “二八原则”：20%的数据满足80%的访问需求，典型的方案：redis结合mysql使用。其中涉及系统中复杂度的增加、redis和mysql数据的同步问题等
 3. redis最初是想作为一个消息队列（实现分布式系统中的生产者、消费者模型）
 4. msyql数据库的主从分离与读写分离：读的需求是要远大于写的需求的，所以只有主库接受写的请求，并将发生改变的内容同步到从库，从库不负责处理写的请求，负责读的请求，上层也可以引入负载均衡的策略对读节点进行选择
@@ -10,55 +10,54 @@
 
 ### 1. 存放键值对
 
-(1) redis中，key都是字符串，value可以是各种类型。存放键值对，使用set keyname keyvalue；redis不区分大小写，也不需要
+(1) redis中，key都是字符串，value可以是各种类型。存放键值对，使用`set keyname keyvalue`；redis不区分大小写，也不需要
 注意单双引号的问题，写不写都可以。
-(2) set keyname value \[ex seconds | px milliseconds\] \[nx|xx\]，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示
-(3) mset keyname value \[keyname value\] 设置多组键值对
-(4) setnx setex psetex
-有设置keyname则不插入，xx表示只在keyname存在时修改value
+(2) `set keyname value \[ex seconds | px milliseconds\] \[nx|xx\]`，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示有设置keyname则不插入，xx表示只在keyname存在时修改value
+
+(3) `mset keyname value \[keyname value\]` 设置多组键值对
+(4) `setnx setex psetex`即设置时就加上选项，`setnx`表示只在不存在时设置，`setex`表示设置过期时间，秒为单位，`psetex`也是设置过期时间，但是以毫秒为单位
+
+
 
 ### 2. 获取键值对
 
-(1) redis中，获取键值对使用get，通过get keyname的方式获取
+(1) redis中，获取键值对使用get，通过`get keyname`的方式获取
 (2) mget，获取多组键值对
 
 ### 获取键值对时的匹配原则
 
-* <strong>?</strong>表示任意一个字符，如key可由ke?检索出来
-* <strong>*</strong>表示任意多个字符，使用其实和Linux检索文件名时使用一样
-* <strong>\[abcdefg\]</strong>表示从中括号中的选项中匹配任意一个
-* <strong>\[^e\]</strong>表示不匹配e
-* <strong>\[a-c\]</strong>表示范围匹配
+* `?`表示任意一个字符，如key可由ke?检索出来
+* `*`表示任意多个字符，使用其实和Linux检索文件名时使用一样
+* `[abcdefg\]`表示从中括号中的选项中匹配任意一个
+* `[^e\]`表示不匹配e
+* `[a-c\]`表示范围匹配
 <p>但是实际开发中，几乎不会使用（禁止）*的方式，因为会检索整个redis中的所有key，而redis又是单线程的，
 所以可能会导致该线程阻塞在检索的过程中，导致大量请求从redis的缓存数据中取不出结果，都去向数据库发出请求，
 导致数据库压力过大挂掉</p>
 ### 3. 查看键值对是否存在
 
-<p>查看一个键值对（多个）是否存在，使用exists keyname1 keyname2 ...</p>
-<p>关于同时支持多个keyname的问题：redis是客户端、服务器形式的应用，所以对于服务器的请求操作都要通过
-网络进行，这意味着经由网络传输、各个层级之间协议的封装与解包，都是较大的时间消耗，所以redis支持一次
-请求携带多个key值去操作，以节省传输的时间（网络的速度一般网卡和硬盘速度对比还是网络慢很多的</p>
+查看一个键值对（多个）是否存在，使用`exists keyname1 keyname2 ...`
+关于同时支持多个keyname的问题：redis是客户端、服务器形式的应用，所以对于服务器的请求操作都要通过网络进行，这意味着经由网络传输、各个层级之间协议的封装与解包，都是较大的时间消耗，所以redis支持一次请求携带多个key值去操作，以节省传输的时间（网络的速度一般网卡和硬盘速度对比还是网络慢很多的
+
 ### 4. 删除键值对
 
-<p>使用del删除键值对，del keyname1 keyname2</p>
+使用del删除键值对，`del keyname1 keyname2`
 
 ### 5. 设置过期时间
 
-1. 秒为单位，expire keyname seconds
-2. 毫秒为单位，pexpire keyname microseconds
+1. 秒为单位，`expire keyname seconds`
+2. 毫秒为单位，`pexpire keyname microseconds`
 
 ### 6. 查看存活时间
 
-1. ttl(time to live) + keyname，查看剩余存活时间，如果没有设置过期时间，那么就返回-1；如果查无此key，
+1. `ttl(time to live) + keyname`，查看剩余存活时间，如果没有设置过期时间，那么就返回-1；如果查无此key，
 就返回-2
 
 ### Redis怎样删除已经过期的key呢？
 
-1. 定期删除。定期查看一部分key是否过期，这个过程很快（因为redis是单线程的，耗费时间过长就会导致类似于
-前面说的*通配符使用的问题
+1. 定期删除。定期查看一部分key是否过期，这个过程很快（因为redis是单线程的，耗费时间过长就会导致类似于前面说的*通配符使用的问题
 2. 惰性删除，当一个key过期了，也不进行删除，而是在使用设个key的时候，发现这个key过期了，然后再删除
-3. Redis其实并没有使用定时器的方式去删除过期的key，有些猜测是早期的redis是单线程的，便奠定了单线程
-的基调，后面也维持了这种风格，但是定时器的实现方案，也是值得了解的，有优先级队列和时间轮两种方式
+3. Redis其实并没有使用定时器的方式去删除过期的key，有些猜测是早期的redis是单线程的，便奠定了单线程的基调，后面也维持了这种风格，但是定时器的实现方案，也是值得了解的，有优先级队列和时间轮两种方式
 
 #### 优先级队列
 
@@ -75,22 +74,24 @@
 
 ### 7. 查看类型
 
-使用type + keyname查看key对应的value的类型
+使用`type + keyname`查看key对应的value的类型
 
 ## redis数据类型与实现方式
 
 <p>很多类型，redis承诺对外是某种类型，但是具体实现的时候可能采用了其他的方式</p>
 
-###1. string
+### 1. string
 
-(1) raw，就是字符串的形式存储<br> 
-(2) int，如果字符串中存储的是数字的话，就直接作为数字存储<br>
+(1) raw，就是字符串的形式存储 
+(2) int，如果字符串中存储的是数字的话，就直接作为数字存储
+
 (3) embstr，对于短字符串做出优化的存储方式，也负责存储小数，这也意味着性能的损失，因为整数通过int的方式存储直接就可以
 比较，但是通过embstr的话就要转化为数字之后再进行比较
 
 ### 2. hash
 
-(1) hashtable，以redis自己的方式做的哈希表<br>
+(1) hashtable，以redis自己的方式做的哈希表
+
 (2) ziplist，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）压缩表通过内部的优化，将数据按照更紧凑的方式进行表示，当数据增多时，会导致效率下降
 
 ### 3. list
@@ -108,7 +109,7 @@
 
 ## 查看具体存储方式
 
-object encoding keyname，查看某个value具体的存储方式
+`object encoding keyname`，查看某个value具体的存储方式
 
 ## redis的单线程工作模型
 
@@ -128,8 +129,8 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 
 ### 1. incr和incrby
 
-(1) incr，表示给相应value + 1，只有实际类型是int的才可以<br>
-(2) incrby，表示给相应value + n，n必须是整数，可以是负数
+(1) `incr`，表示给相应value + 1，只有实际类型是int的才可以<br>
+(2) `incrby`，表示给相应value + n，n必须是整数，可以是负数
 (3) 如果key不存在，就从零开始处理
 
 ### 2. decr和decrby
@@ -148,14 +149,14 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 
 ### 5. getrange
 
-(1) getrange keyname start end，表示获取\[start, end\]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
+(1) `getrange keyname start end`，表示获取\[start, end\]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
 ，因为无论是utf8还是gbk都是多字节编码一个中文字符 <br>
 (2) 当end是负数时，表示倒数第几个字符，例如-1表示倒数第一个字符 <br>
 (3) 根据两个端点的情况，redis会自动截取内容（数字同理），但是如果最后出现start > end时，会导致解析不出内容
 
 ### 6. setrange
 
-(1) setrange key start value，设置从start开始的内容为value，具体设置到哪里取决于value的长度<br>
+(1) `setrange key start value`，设置从start开始的内容为value，具体设置到哪里取决于value的长度<br>
 (2) 如果设置的key不存在，那么就根据start的值，用空格填充前面的内容；如果start超过了当前内容的长度，也是同理往后
 添加用空格补全长度
 
@@ -169,10 +170,10 @@ redis中的hash，使用field-value表示键值的结构，其中，value的类�
 
 ### 1. hset、hget、hexists、hdel
 
-(1) hset keyname fieldname value，表示keyname用来查找这个哈希表，fieldname是哈希表的键值。
-(2) hget keyname fieldname，获取keyname的哈希表的fieldname所对应的值
-(3) hexists keyname fieldname，判断keyname对应的哈希表是否具有fieldname的键值
-(4) hdel keyname fieldname，删除keyname对应的哈希表的fieldname键值
+(1) `hset keyname fieldname value`，表示keyname用来查找这个哈希表，fieldname是哈希表的键值。
+(2) `hget keyname fieldname`，获取keyname的哈希表的fieldname所对应的值
+(3) `hexists keyname fieldname`，判断keyname对应的哈希表是否具有fieldname的键值
+(4) `hdel keyname fieldname`，删除keyname对应的哈希表的fieldname键值
 
 ### 2. hkeys、hvals
 
@@ -181,10 +182,10 @@ hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key
 
 ### hlen、hsetnx、hincrby、hincrbyfloat
 
-1. hlen keyname，用来查询哈希表的大小<br>
-2. hsetnx，不存在则插入，存在则失败<br>
-3. hincrby，哈希表中某个value + n，只适合处理数字类型的value<br>
-4. hincrbyfloat，哈希表中某个值增加，可以是小数
+1. `hlen keyname`，用来查询哈希表的大小<br>
+2. `hsetnx`，不存在则插入，存在则失败<br>
+3. `hincrby`，哈希表中某个value + n，只适合处理数字类型的value<br>
+4. `hincrbyfloat`，哈希表中某个值增加，可以是小数
 
 ### 使用哈希存储的场景
 
@@ -199,13 +200,13 @@ hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key
 
 ### lpush lpop rpush rpop
 
-push_front pop_front push_back pop_back
+`push_front` pop_front `push_back` pop_back
 
 ### lrem lindex lrange
 
-1. lrem key count value，表示将key列表中的count个value（有多少删多少）删除并返回
-2. lrange key start stop，表示将key列表中\[start, stop\]的下标的内容返回（显示查询出结果的时候，前面带的数字不是下标，是结果集的序号），当下标超出的时候会取余调整
-3. lindex key index，表示获得key列表中下标为index的元素
+1. `lrem key count value`，表示将key列表中的count个value（有多少删多少）删除并返回
+2. `lrange key start stop`，表示将key列表中\[start, stop\]的下标的内容返回（显示查询出结果的时候，前面带的数字不是下标，是结果集的序号），当下标超出的时候会取余调整
+3. `lindex key index`，表示获得key列表中下标为index的元素
 
 ### lpushx 和 rpushx
 
@@ -213,27 +214,27 @@ push_front pop_front push_back pop_back
 
 ### lpop 和 rpop
 
-1. lpop keyname \[count\]，从左端删除，后面的count在低版本的不支持<br>
-2. rpop keyname \[count\]，从右端删除<br>
+1. `lpop keyname [count]`，从左端删除，后面的count在低版本的不支持<br>
+2. `rpop keyname [count]`，从右端删除<br>
 3. 与lpush和rpush搭配就可以当作栈、队列使用
 
 ### linsert
 
-linsert keyname \[before|after\] pivot value, pivot是从左到右寻找的一个值(如果没有找到就插入失败)
+`linsert keyname [before|after] pivot value`, pivot是从左到右寻找的一个值(如果没有找到就插入失败)
 
 ### lrem
 
-lrem keyname count element，count > 0时，从左到右移除count个元素；count == 0，移除列表中所有element相等的元素；count < 0时，从右向左移除count个元素
+`lrem keyname count element`，count > 0时，从左到右移除count个元素；count == 0，移除列表中所有element相等的元素；count < 0时，从右向左移除count个元素
 
 ### ltrim 和 lset
 
-1. ltrim，ltrim keyname start stop 截取\[start, stop\]的区间之后，剩下部分丢弃
-2. lset，lset keyname index element 将index下标设置为element，其中index超过范围时，会报错
+1. `ltrim，ltrim keyname start stop` 截取\[start, stop\]的区间之后，剩下部分丢弃
+2. `lset，lset keyname index element` 将index下标设置为element，其中index超过范围时，会报错
 
 ### blpop 和 brpop
 
 1. 两者都是阻塞等待，但是在redis中，首先第一点，这两个阻塞是特殊的，并不会影响redis核心逻辑的工作，第二点就是这个阻塞队列并不会考虑队列满的情况，只会考虑队列为空的阻塞<br>
-2. blpop keyname timeout，0表示一直阻塞等待，以秒为单位等待<br>
+2. `blpop keyname timeout`，0表示一直阻塞等待，以秒为单位等待<br>
 3. 两者可以同时等待多个队列，从左到右第一个有数据出队列时返回
 
 ### list列表的应用场景
@@ -247,31 +248,31 @@ set与列表相比，是无序的，意思是顺序不重要，同时set中不�
 
 ### sadd smember sismember scard
 
-1. sadd key elements往set中添加元素
-2. smembers key，获取set中的所有元素
-3. sismember key member，判断一个value是否是key's set中的元素
-4. scard keyname，获取集合中的元素个数
+1. `sadd key elements`往set中添加元素
+2. `smembers key`，获取set中的所有元素
+3. `sismember key member`，判断一个value是否是key's set中的元素
+4. `scard keyname`，获取集合中的元素个数
 
 ### spop srandmember
 
-1. spop  keyname，从set中随机获取一个元素并且从set中删除
-2. srandmember keyname，从set中随机获取一个元素，但是并不会删除set中的返回元素
+1. `spop  keyname`，从set中随机获取一个元素并且从set中删除
+2. `srandmember keyname`，从set中随机获取一个元素，但是并不会删除set中的返回元素
 
 ### srem smove
 
-1. srem keyname element，删除指定set中的指定元素
-2. smove source destination element，将source set中的element移动给element，如果移动destination中已经存在的元素也能移动成功，但是发生替换
+1. `srem keyname element`，删除指定set中的指定元素
+2. `smove source destination element`，将source set中的element移动给element，如果移动destination中已经存在的元素也能移动成功，但是发生替换
 
 ### sinter sinternstore 交集
 
-1. sinter setname1 setname2 ...，求出两者的交集
-2. sinterstore destination setname1 setname2 ...，求出两者的交集，放到destination集合中
+1. `sinter setname1 setname2 ...`，求出两者的交集
+2. `sinterstore destination setname1 setname2 ...`，求出两者的交集，放到destination集合中
 
 ### sunion sunionstore sdiff sdiffstore
 
 分别取求并集和差集，使用方式与求交集相同
 
-## set的应用场景
+### set的应用场景
 
 1. 用来存储用户画像，通过一个一个标签（其实就是小字符串）的形式存储在set当中
 2. 好友的推荐，因为set非常方便求交集，所以可以快速推荐共同好友等
@@ -283,35 +284,36 @@ zset也是有序的，但是zset的有序是真正的有顺序的，通过在插
 
 ### zadd
 
-1. zadd key \[nx|xx\] \[gt|lt\] \[ch\] \[incr\] score member \[score member ...\]
-2. 返回值的问题，zadd默认的返回值是新增元素的个数，但是如果设置了ch，就会返回修改元素的个数
-3. gt|lt，greater than | less than，前者是只有当前更新的score大于原来的score时才更新，后者反之
-4. nx|xx，nx表示只新增不修改，xx表示只修改不新增
-5. incr使用类似于incrby，不过作用对象是score
+`zadd key \[nx|xx\] \[gt|lt\] \[ch\] \[incr\] score member \[score member ...\]`
+
+1. 返回值的问题，zadd默认的返回值是新增元素的个数，但是如果设置了ch，就会返回修改元素的个数
+2. gt|lt，greater than | less than，前者是只有当前更新的score大于原来的score时才更新，后者反之
+3. nx|xx，nx表示只新增不修改，xx表示只修改不新增
+4. incr使用类似于incrby，不过作用对象是score
 
 ### zrange
 
-1. zrange key start end \[withscore\]，展示zset中的全部元素，withscores表示展示相应元素分数
-2. zrevrange key start end \[withscore\]，表示逆序展示(start, range)的member
-3. zrangebyscore key start end \[withscore\]，表示根据score从低到高排序展示member，前面两个start、end表示的是下标
+1. `zrange key start end [withscore]`，展示zset中的全部元素，withscores表示展示相应元素分数
+2. `zrevrange key start end [withscore]`，表示逆序展示(start, range)的member
+3. `zrangebyscore key start end [withscore]`，表示根据score从低到高排序展示member，前面两个start、end表示的是下标
 
 ### zcount
 
-1. zcount key start end，用来统计某个score区间中member的个数，如果要表示一个数字是开区间的一端的话就在前面加上(，例如(2, 5)表示为(2 (5
+1. `zcount key start end`，用来统计某个score区间中member的个数，如果要表示一个数字是开区间的一端的话就在前面加上(，例如(2, 5)表示为(2 (5
 2. zcount支持使用正负无穷大作为最大值、最小值(-inf, inf);
 
 ### zcard
 
-zcard key，统计member个数
+`zcard key`，统计member个数
 
 ### zpopmax
 
 1. zset在redis中默认排的是升序，zpopmax会删除score最大的member，并返回删除的member和score
-2. zpopmax key \[count\]表示连续取count个最大member，时间复杂度O(logN * M);
+2. `zpopmax key [count]`表示连续取count个最大member，时间复杂度O(logN * M);
 
 ### bzpopmax
 
-1. bzpopmax key \[key...\] timeout，阻塞的取最大member，超时时间为timeout（0为一直阻塞），可以等待多个key，当任意一个有返回时，阻塞结束，因此时间复杂度是O(logN);
+1. `bzpopmax key \[key...\] timeout`，阻塞的取最大member，超时时间为timeout（0为一直阻塞），可以等待多个key，当任意一个有返回时，阻塞结束，因此时间复杂度是O(logN);
 
 ### zpopmin bzpopmin
 
@@ -319,32 +321,34 @@ zcard key，统计member个数
 
 ### zrank zrevrank zscore
 
-1. zrank key member \[withscore\]，查询member在有序列表中的下标，从前往后算，就和正常数组一样
-2. zrevrank key member withscore，查询member在有序数组中从后往前的下标，即最后一个元素下标为0
-3. zscore key member，查询member的分数，为了优化效率，redis牺牲空间，换取了该操作O(1)的时间复杂度
+1. `zrank key member [withscore]`，查询member在有序列表中的下标，从前往后算，就和正常数组一样
+2. `zrevrank key member withscore`，查询member在有序数组中从后往前的下标，即最后一个元素下标为0
+3. `zscore key member`，查询member的分数，为了优化效率，redis牺牲空间，换取了该操作O(1)的时间复杂度
 
 ### zrem zremrangebyrank zremrangebyscore
 
-1. zrem key member，删除member成员，时间复杂度O(logN);
-2. zremrangebyrank key start end，删除下标\[start, end\]的成员，时间复杂度O(logN + M)，因为只需要找到一个七点就可以往后删除
-3. zremrangebyscore key min max，删除分数\[min, max\]的成员，支持使用'('去指定开区间
+1. `zrem key member`，删除member成员，时间复杂度O(logN);
+2. `zremrangebyrank key start end`，删除下标\[start, end\]的成员，时间复杂度O(logN + M)，因为只需要找到一个七点就可以往后删除
+3. `zremrangebyscore key min max`，删除分数\[min, max\]的成员，支持使用'('去指定开区间
 
 ### zincrby
 
-1. zincrby key increment member，给member的分数增加increment，increment可以是小数，也可以是负数，表示减小分数
+1. `zincrby key increment member`，给member的分数增加increment，increment可以是小数，也可以是负数，表示减小分数
 
 ### zinterstore 
 
-1. zinterstore destination keynum key \[key...\] weights \[weight...\] \[aggregate sum | min | max\]
-2. destination表示存储交集的名称，keynum用于指定一共有多少个key制定了要求交集的zset（类似于http协议报头中的content-length），weights表示接下来的内容用于指定权重，可以是整数也可以是小数，其与共同的member的score相乘后得到结果作为新的score，而具体怎么作用有aggregate后的内容决定，默认是sum，新的score由所有的相加形成，min为所有的score的最小值，max为最大值
-3. 在最坏情况下，时间复杂度为`O(N*K) + O(M*log(M))`，其中N为最小集合的元素个数，K为求交集的元素个数，M为最后交集中
-元素的个数
+`zinterstore destination keynum key \[key...\] weights \[weight...\] \[aggregate sum | min | max\]`
+
+1. destination表示存储交集的名称，keynum用于指定一共有多少个key制定了要求交集的zset（类似于http协议报头中的content-length），weights表示接下来的内容用于指定权重，可以是整数也可以是小数，其与共同的member的score相乘后得到结果作为新的score，而具体怎么作用有aggregate后的内容决定，默认是sum，新的score由所有的相加形成，min为所有的score的最小值，max为最大值
+2. 在最坏情况下，时间复杂度为`O(N*K) + O(M*log(M))`，其中N为最小集合的元素个数，K为求交集的元素个数，M为最后交集中
+  元素的个数
 
 ### zunionstore
 
-1. zunionstore destination keynum key \[key...\] weights \[weight\] \[aggregate sum | min | max\] 
-2. 求并集，使用方法与zinterstore类似
-3. 时间复杂度是`O(N) + O(M*log(M))`，N是元素总个数，M是并集中元素的个数
+`zunionstore destination keynum key \[key...\] weights \[weight\] \[aggregate sum | min | max\] `
+
+1. 求并集，使用方法与zinterstore类似
+2. 时间复杂度是`O(N) + O(M*log(M))`，N是元素总个数，M是并集中元素的个数
 
 ### zset的应用场景
 
@@ -362,10 +366,57 @@ zcard key，统计member个数
 ## 渐进式遍历
 
 1. 不同于直接使用类似于`keys *`的方式去查找整个redis中的键，渐进式遍历采取一次查找一小部分的方式来查找到需要的内容。这样每一次花费的时间都较少，能够避免redis服务器被阻塞
-2. scan cursor [MATCH match] [COUNT count] [TYPE type]，表示从cursor光标开始，寻找count个元素。这里的`cursor`并不是下表的意思，而是redis服务器在每次渐进式遍历结束后返回的下次渐进式遍历的开始位置，输入0表示从头开始遍，返回的新位置是0表示此次遍历结束；match表示通配符匹配，使用规则和keys的一样；type表示检索出的结果的类型
+2. `scan cursor [MATCH match] [COUNT count] [TYPE type]`，表示从cursor光标开始，寻找count个元素。这里的`cursor`并不是下表的意思，而是redis服务器在每次渐进式遍历结束后返回的下次渐进式遍历的开始位置，输入0表示从头开始遍，返回的新位置是0表示此次遍历结束；match表示通配符匹配，使用规则和keys的一样；type表示检索出的结果的类型
 3. scan不指明的话，默认count为10；同时检索在redis服务器不会保留任何结果，所以检索到一半不再进行是可以的；渐进式遍历不一定是可靠的，如果出现遍历过程中已经完成遍历的数据又发生修改的情况可能会无法从检索结果中反馈
 
 ## redis数据库操作
 
 1. redis中也是有数据库的概念的，但是没有mysql中那么强；默认redis与16个数据库，不允许增加或删除，默认数据的操作都是在0号数据库中进行
-2. redis中切换库使用select index，表示切换0~15号数据库；使用dbsize来查看当前数据库中key的个数；使用flushdb [async|sync]来选择同步或者异步清空数据库；使用flushall来清空所有数据库的所有内容
+2. redis中切换库使用`select index`，表示切换0~15号数据库；使用`dbsize`来查看当前数据库中key的个数；使用`flushdb [async|sync]`来选择同步或者异步清空数据库；使用`flushall`来清空所有数据库的所有内容
+
+## redis自定义客户端编写
+
+### RESP协议
+
+1. redis客户端和服务器之间采取的是为redis定制的RESP协议，基于TCP建立连接，采取一问一答的方式完成cs之间的信息交互
+2. 对于客户端，发送请求通过bulk string数组将命令写入请求；服务器返回结果时，根据请求命令的返回情况，返回不同内容
+
+#### 协议格式
+
+```shell
++OK\r\n
+```
+
+Simple String，以 + 开头
+
+
+
+```shell
+-ERR\r\n
+```
+
+Error，以 - 开头
+
+
+
+```shell
+:1000\r\n
+```
+
+整形，以：开头
+
+
+
+```shell
+$5\r\nhello\r\n
+```
+
+BulkString，以$开头，相比Simple String可以传输二进制数据
+
+
+
+```shell
+*2\r\n$5\r\nhelloworld$5\r\nhello\r\n
+```
+
+Array，以*开头
