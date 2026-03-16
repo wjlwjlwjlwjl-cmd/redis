@@ -429,10 +429,10 @@ Array，以*开头
 
    ```cpp
    #include <sw/redis++/redis.h>
-   sw::redis::Redis redis("tcp://127.17.0.1:6379");
+   sw::redis::Redis redis("tcp://127.0.0.1:6379");
    ```
 
-   
+   * 声明ip和Redis服务器端口号
 
 2. 使用ping方法检查连通性
 
@@ -440,13 +440,14 @@ Array，以*开头
    std::string ret = redis.ping(); std::cout << ret << std::endl;
    ```
 
-   
+   ### String
 
-3. get、set方法
+1. get、set方法
 
    ```cpp
-   sw::redis::Redis redis("tcp://127.17.0.1:6379");
-   redis.set("key1", "val1");
+   sw::redis::Redis redis("tcp://127.0.0.1:6379");
+   using namespace std::chrono_literals;
+   redis.set("key1", "val1", 0s, sw::redis::UpdateType::NO_EXIST); //0s表示不设置过期时间，没有提供只传递更新策略的set函数
    auto ret = redis.get("key1");
    if(ret) std::cout << ret.value() << std::endl;
    ```
@@ -454,8 +455,8 @@ Array，以*开头
    
 
    * set方法基本使用通过传入`sw::redis::StringView`的key、val即可设置简单键值对，`StringView`使用类似于`std::string`，但是他是只读的而且效率更高；返回值的类型是`sw::redis::OptionalString`，其中`Optional`表示无效值，没有采用`std::string`的原因是一方面如果直接采用对象的话，那么无法很好的表示`nil`，另一方面如果返回对象指针，还要设计内存指向空间是否有效的问题。`sw::redis::OptionString`在结果有效时，可以通过`value()`接口获取返回内容，同时失败的情况也可通过他隐式转换为`bool`来得知
-
-4. exists和del
+     * set还有第三、四个参数，分别用来表示过期时间和更新策略。过期时间使用`std::chrono::milliseconds`，更新策略分为`sw::redis::UpdateType::EXIST`、`sw::redis::UpdateType::NOT_EXIST` `sw::redis::UpdateType::ALWAYS`，分对应`setnx` `setxx` 和直接set     
+2. exists和del
 
    ```cpp
    sw::redis::Redis redis("tcp://127.0.0.1:6379");
@@ -468,7 +469,7 @@ Array，以*开头
 * `exists`判断一个key是否存在，存在返回1，失败返回0
 * `del`删除key，返回删除key的数目
 
-5. keys
+3. keys
 
 ```cpp
 sw::redis::Redis redis("tcp://127.0.0.1:6379");
@@ -480,7 +481,7 @@ redis.keys("*", it);
 
 
 
-6. expire和ttl
+4. expire和ttl
 
 ```cpp
 sw::redis::Redis redis("tcp://127.0.0.1:6379");
@@ -500,3 +501,42 @@ redis.set("key", "val");
 std::string ret = redis.type("key");
 ```
 
+5. mget mset
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+redis.mset({std::make_pair("key1", "val1"), std::make_pair("key2", "val2")});
+std::vector<std::string> keys;
+redis.mset(keys.begin(), keys.end());
+
+std::vector<sw::redis::OptionalString> vals; auto bit = std::back_inserter(vals);
+redis.mget({"key1", "key2"}, bit);
+std::vector<std::string> vals2 = {"key1", "key2"};
+redis.mget(vals2.begin(), vals2.end(), bit);
+```
+
+* `mget`方法支持通过初始化列表出入多个pair来表示要插入的多个键值对，或者可以采用迭代器的方式使用string数组的起止迭代器传参
+* `mset`方法支持通过初始化列表或者`sw::redis::OptionalString`数组来传入多个key，也需要在最后传入一个尾插迭代器来带出结果
+
+
+
+6. getrange setrange
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+std::string ret = redis.getrange("key", 5, 10);
+long long val = redis.setrange("key", 5, "ins_val");
+```
+
+* `getrange`返回[start, end]范围中的内容，返回的时普通的`std::string`
+* `setrange`将从offset开始的内容，设置为给定的字符串，并返回完成更改后新的字符串的长度
+
+7. incr decr
+
+```cpp
+sw::redis::Redis redis("tcp://127.0.0.1:6379");
+long long ret1 = redis.incr("key");
+long long ret2 = redis.decr("key");
+```
+
+* `incr`和`decr`返回更改过后的值，两者都是以一为单位；相比`get`方法，后者返回的是`sw::redis::OptionalString`，如果想要当作数字使用的话还要转换
