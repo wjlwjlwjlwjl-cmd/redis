@@ -43,12 +43,33 @@ void test4(sw::redis::Redis& server){
     PrintContainer<std::vector<sw::redis::OptionalString>>(vals);
 }
 
+void test5(sw::redis::Redis& server){
+    server.flushall();
+    server.set("key", "my name is wangjial");
+    std::string ret = server.getrange("key", 5, 10);
+    std::cout << ret << std::endl;
+
+    server.setrange("key", 5, "hello world");
+    auto val = server.get("key");
+    if(val){
+        std::cout << val.value() << std::endl;
+    }
+}
+
+void test6(sw::redis::Redis& server){
+    server.flushall();
+    server.set("key", "1");
+    long long ret1 = server.incr("key");
+    long long ret2 = server.decr("key");
+    std::cout << ret1 << " " << ret2 << std::endl;
+}
+
 int main()
 {
     sw::redis::Redis server("tcp://127.0.0.1:6379");
     //test1(server);
     //test2(server);
-    test4(server);
+    test6(server);
     
     return 0;
 }
