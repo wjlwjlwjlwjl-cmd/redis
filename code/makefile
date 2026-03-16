@@ -1,4 +1,4 @@
-all:hello generic string
+all:hello generic string list set
 
 hello: hello.cc
 	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
@@ -8,6 +8,11 @@ generic:generic.cc
 
 string:string.cc
 	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
+list:list.cc
+	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
+set:set.cc
+	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
+
 
 .PHONY: clean
 clean:

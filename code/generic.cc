@@ -1,4 +1,3 @@
-#include <iostream>
 #include <sw/redis++/redis.h>
 #include <chrono>
 #include <thread>
