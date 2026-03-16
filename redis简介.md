@@ -540,3 +540,60 @@ long long ret2 = redis.decr("key");
 ```
 
 * `incr`和`decr`返回更改过后的值，两者都是以一为单位；相比`get`方法，后者返回的是`sw::redis::OptionalString`，如果想要当作数字使用的话还要转换
+
+### list
+
+1. lpush lrange rpush rpop lpop
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+server.lpush("list1", "1");
+server.lpush("list1", {"1", "2", "3"});
+std::vector<std::string> vals = "1", "2", "3";
+server.lpush("list1", vals.begin(), vals.end());
+
+std::vector<std::string> rets;
+auto bit = std::back_inserter(rets);
+server.lrange("list1", bit);
+
+auto ret1 = server.rpop("list1"); auto ret2 = server.lpop();
+```
+
+* `lpush`和`rpush`都是通过先指定列表名称，再指定元素的方式使用的。指定元素有三种方式：1. 直接给予，这样可以给一个；2. 通过初始化列表给予多个值；3. 现在外部容器构造完成，然后给予起止迭代器
+* `lrange`，需要给予一个尾插迭代器，来带出遍历结果
+* `rpop`和`lpop`，两个都是通过直接给予列表名称，然后返回`sw::redis::OptionalString`的方式获取两端元素
+
+2. brpop blpop
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+auto ret = server.blpop("list1", std::chrono::seconds(1));
+if(ret)
+{
+    std::cout << ret.value().first << ret.value().second << std::endl;
+}
+```
+
+* 两者都是阻塞式的获取列表收尾的元素。对于传参，可以直接给字符串，也可以通过初始化列表，也可以通过迭代器的方式；返回结果采用的是`OptionalString`+`pair`的方式返回，因为可以等待多个队列，所以既返回列表名，也返回删除元素；也可以设置超时时间，超过仍未获取元素就直接返回
+
+3. llen
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+long long server.llen("list");
+```
+
+* `llen`用来获取列表长度
+
+### Set
+
+1. sadd smembers
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+server.sadd("set", "1");
+set<string> mems; auto in = std::inserter(mems, mems.end());
+server.smembers("set", in);
+```
+
+* Redis-plus-plus的接口风格统一性是很高的。`sadd`前面提到的三种方式都可以，`smembers`也是通过迭代器的方式将遍历结果带出
