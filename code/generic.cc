@@ -2,6 +2,7 @@
 #include <sw/redis++/redis.h>
 #include <chrono>
 #include <thread>
+#include "utils.hpp"
 
 void test1(sw::redis::Redis& server)
 {
@@ -32,9 +33,7 @@ void test2(sw::redis::Redis& server){
     std::vector<std::string> keys;
     auto bit = std::back_inserter(keys);
     server.keys("*", bit);
-    for(auto& e: keys){
-        std::cout << e << std::endl;
-    }
+    PrintContainer<std::vector<std::string>>(keys);
 }
 
 void test3(sw::redis::Redis& server)
@@ -76,6 +75,6 @@ int main()
 {
     sw::redis::Redis server("tcp://127.0.0.1:6379");
     //test1(server);
-    test4(server);
+    test2(server);
     return 0;
 }
