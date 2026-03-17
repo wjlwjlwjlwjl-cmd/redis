@@ -1,8 +1,8 @@
 ## redis简介
 
-1. 相比如mysql，redis也可以当作数据库来使用，而且更快，因为是内存中的数据库，但是和mysql相比，具有存储空间小
-    的问题，因为内存空间远小于硬盘空间
-2. “二八原则”：20%的数据满足80%的访问需求，典型的方案：redis结合mysql使用。其中涉及系统中复杂度的增加、redis和mysql数据的同步问题等
+1. 相比如mysql，redis也可以当作数据库来使用，而且更快，因为是内存中的数据库。但是和mysql相比，具有存储空间小
+    的问题，因为内存空间远小于硬盘空间，同时也是因为这个问题，redis的功能相比mysql要少，比如不存在多表查询等等操作
+2. “二八原则”：20%的数据满足80%的访问需求，典型的方案：redis结合mysql使用，使用redis存储经常使用的热点数据，剩下的数据存储在mysql中，只在需要的时候去取。其中涉及系统中复杂度的增加、redis和mysql数据的同步问题等
 3. redis最初是想作为一个消息队列（实现分布式系统中的生产者、消费者模型）
 4. msyql数据库的主从分离与读写分离：读的需求是要远大于写的需求的，所以只有主库接受写的请求，并将发生改变的内容同步到从库，从库不负责处理写的请求，负责读的请求，上层也可以引入负载均衡的策略对读节点进行选择
 
@@ -12,9 +12,9 @@
 
 (1) redis中，key都是字符串，value可以是各种类型。存放键值对，使用`set keyname keyvalue`；redis不区分大小写，也不需要
 注意单双引号的问题，写不写都可以。
-(2) `set keyname value \[ex seconds | px milliseconds\] \[nx|xx\]`，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示有设置keyname则不插入，xx表示只在keyname存在时修改value
+(2) `set keyname value [ex seconds | px milliseconds] [nx|xx]`，ex指定超时时间以秒为单位，px以毫秒为单位；nx表示有设置keyname则不插入，xx表示只在keyname存在时修改value
 
-(3) `mset keyname value \[keyname value\]` 设置多组键值对
+(3) `mset keyname value [keyname value]` 设置多组键值对
 (4) `setnx setex psetex`即设置时就加上选项，`setnx`表示只在不存在时设置，`setex`表示设置过期时间，秒为单位，`psetex`也是设置过期时间，但是以毫秒为单位
 
 
@@ -28,12 +28,14 @@
 
 * `?`表示任意一个字符，如key可由ke?检索出来
 * `*`表示任意多个字符，使用其实和Linux检索文件名时使用一样
-* `[abcdefg\]`表示从中括号中的选项中匹配任意一个
-* `[^e\]`表示不匹配e
-* `[a-c\]`表示范围匹配
-<p>但是实际开发中，几乎不会使用（禁止）*的方式，因为会检索整个redis中的所有key，而redis又是单线程的，
+* `[abcdefg]`表示从中括号中的选项中匹配任意一个
+* `[^e]`表示不匹配e
+* `[a-c]`表示范围匹配
+
+但是实际开发中，几乎不会使用（禁止）`*`的方式，因为会检索整个redis中的所有key，而redis又是单线程的，
 所以可能会导致该线程阻塞在检索的过程中，导致大量请求从redis的缓存数据中取不出结果，都去向数据库发出请求，
-导致数据库压力过大挂掉</p>
+导致数据库压力过大挂掉
+
 ### 3. 查看键值对是否存在
 
 查看一个键值对（多个）是否存在，使用`exists keyname1 keyname2 ...`
@@ -82,30 +84,30 @@
 
 ### 1. string
 
-(1) raw，就是字符串的形式存储 
-(2) int，如果字符串中存储的是数字的话，就直接作为数字存储
+(1) `raw`，就是字符串的形式存储 
+(2) `int`，如果字符串中存储的是数字的话，就直接作为数字存储
 
-(3) embstr，对于短字符串做出优化的存储方式，也负责存储小数，这也意味着性能的损失，因为整数通过int的方式存储直接就可以
+(3) `embstr`，对于短字符串做出优化的存储方式，也负责存储小数，这也意味着性能的损失，因为整数通过int的方式存储直接就可以
 比较，但是通过embstr的话就要转化为数字之后再进行比较
 
 ### 2. hash
 
-(1) hashtable，以redis自己的方式做的哈希表
+(1) `hashtable`，以redis自己的方式做的哈希表
 
-(2) ziplist，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）压缩表通过内部的优化，将数据按照更紧凑的方式进行表示，当数据增多时，会导致效率下降
+(2) `ziplist`，压缩表，当value的类型是哈希表但是其中的元素又很少时，就可以采用ziplist来遍历（因为元素少所以时间差异不大）压缩表通过内部的优化，将数据按照更紧凑的方式进行表示，当数据增多时，会导致效率下降
 
 ### 3. list
 
-(1) 以前的版本采用的是linkedlist + ziplist实现，redis3.2以后，采取quicklist的实现方式，类似于std::deque
+(1) 以前的版本采用的是`linkedlist + ziplist`实现，redis3.2以后，采取`quicklist`的实现方式，类似于std::deque
 
 ### 4. set
 
-(1) hashtable (2) intset整数集合，当集合中数据较少而且只存储整数的时候，就是用这种结构
+(1) `hashtable` (2) `intset`整数集合，当集合中数据较少而且只存储整数的时候，就是用这种结构
 
 ### 5. zset
 
-(1) skiplist，跳表，类似于链表，但是每个节点有多个指针域，使之能够实现logN的查询效率
-(2) ziplist，元素个数比较少或者元素大小比较小
+(1) `skiplist`，跳表，类似于链表，但是每个节点有多个指针域，使之能够实现logN的查询效率
+(2) `ziplist`，元素个数比较少或者元素大小比较小
 
 ## 查看具体存储方式
 
@@ -129,7 +131,8 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 
 ### 1. incr和incrby
 
-(1) `incr`，表示给相应value + 1，只有实际类型是int的才可以<br>
+(1) `incr`，表示给相应value + 1，只有实际类型是int的才可以
+
 (2) `incrby`，表示给相应value + n，n必须是整数，可以是负数
 (3) 如果key不存在，就从零开始处理
 
@@ -143,15 +146,18 @@ redis需要处理的业务基本上都是短平快的，对于cpu并行的要求
 
 ### 4. append
 
-(1) 对字符串进行追加操作，并返回追加之后的长度 <br>
+(1) 对字符串进行追加操作，并返回追加之后的长度 
+
 (2) 对于redis来说，不会对我们的数据进行字符集上的处理，因此输入中文的话默认打出的就是原编码，所以可以在启动客户端
 的时候加上--raw指令，让客户端尝试解读返回的二进制数据并展示，就能够完成中文的显示了
 
 ### 5. getrange
 
 (1) `getrange keyname start end`，表示获取\[start, end\]的内容，以字节为单位，这意味着可能会出现中文被解析成乱码的情况
-，因为无论是utf8还是gbk都是多字节编码一个中文字符 <br>
-(2) 当end是负数时，表示倒数第几个字符，例如-1表示倒数第一个字符 <br>
+，因为无论是utf8还是gbk都是多字节编码一个中文字符 
+
+(2) 当end是负数时，表示倒数第几个字符，例如-1表示倒数第一个字符 
+
 (3) 根据两个端点的情况，redis会自动截取内容（数字同理），但是如果最后出现start > end时，会导致解析不出内容
 
 ### 6. setrange
@@ -178,13 +184,13 @@ redis中的hash，使用field-value表示键值的结构，其中，value的类�
 ### 2. hkeys、hvals
 
 hkeys key，获取key对应的哈希表中的所有field；hvals key，获取key对应的哈希表中的所有value值。尽量不要使用这些操作，
-和keys *有异曲同工之妙
+和keys`*`有异曲同工之妙
 
 ### hlen、hsetnx、hincrby、hincrbyfloat
 
-1. `hlen keyname`，用来查询哈希表的大小<br>
-2. `hsetnx`，不存在则插入，存在则失败<br>
-3. `hincrby`，哈希表中某个value + n，只适合处理数字类型的value<br>
+1. `hlen keyname`，用来查询哈希表的大小
+2. `hsetnx`，不存在则插入，存在则失败
+3. `hincrby`，哈希表中某个value + n，只适合处理数字类型的value
 4. `hincrbyfloat`，哈希表中某个值增加，可以是小数
 
 ### 使用哈希存储的场景
@@ -284,7 +290,7 @@ zset也是有序的，但是zset的有序是真正的有顺序的，通过在插
 
 ### zadd
 
-`zadd key \[nx|xx\] \[gt|lt\] \[ch\] \[incr\] score member \[score member ...\]`
+`zadd key [nx|xx] [gt|lt] [ch] [incr] score member [score member ...]`
 
 1. 返回值的问题，zadd默认的返回值是新增元素的个数，但是如果设置了ch，就会返回修改元素的个数
 2. gt|lt，greater than | less than，前者是只有当前更新的score大于原来的score时才更新，后者反之
@@ -597,3 +603,99 @@ server.smembers("set", in);
 ```
 
 * Redis-plus-plus的接口风格统一性是很高的。`sadd`前面提到的三种方式都可以，`smembers`也是通过迭代器的方式将遍历结果带出
+
+2. sismember spop scard
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+bool exists = server.ismember("set", "1");
+auto ret = spop("set"); if(ret) std::cout << ret.value() << std::endl;
+long long num = scard("set");
+```
+
+* `sismember`，用来判断某个成员是否属于某个集合
+* `spop`，用来随机返回集合中的一个元素
+* `scard`，用来返回某个集合中的元素个数
+
+### Hash
+
+1. hget hset
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+long long ret = server.hset("hash1", "1", "zhangsan");
+ret = server.hset("hash1", {std::make_pair("2", "lisi"), std::make_pair("3", "wangwu")});
+auto val = server.hget("hash1", "1"); if(val) std::cout << val.value() << std::endl;
+```
+
+
+
+* `hset`用来向哈希表中添加元素，依然可以通过直接给予、初始化列表、迭代器三种方式给予`field-value`
+* `hget`用获取哈希表中`field-value`中的`value`
+
+2. hexists hdel hlen
+
+```cpp
+sw::redis::Redis server("tcp://127.0.0.1:6379");
+bool exists = server.hexists("hash1", "1");
+long long ret = server.hdel("hash1", {"1", "2"});
+ret = server.hlen("hash1");
+```
+
+* `hexists`用来判断某个`field`是否存在
+* `hdel`用来删除多个`field`，并返回删除的个数
+* `hel`，返回一个哈希表中`field`的个数
+
+3. hmset hmget hkeys hvals
+
+```cpp
+std::vector<std::string> keys;
+    auto it = std::back_inserter(keys);
+    server.hkeys("hash1", it);
+
+    std::vector<std::string> vals;
+    it = std::back_inserter(vals);
+    server.hvals("hash1", it);
+
+    server.hmget("hash1", {"3", "4", "5"}, it);
+```
+
+* `hmset` `hmget`用来获取、设置多个元素，`hkeys` `hvals`用来获取一个哈希表中所有的`field` `value`
+
+### ZSet
+
+1. zadd zrange
+
+```cpp
+	server.zadd("zset1", "zhangsan", 1);
+    server.zadd("zset1", {std::make_pair("lisi", 2), std::make_pair("wangwu", 3)});
+    std::vector<std::pair<std::string, std::string>> pairs = {
+        std::make_pair("zhouliu", "4"),
+        std::make_pair("tianqi", "5")
+    };
+    server.zadd("zset1", pairs.begin(), pairs.end());
+
+    std::vector<std::string> withnoscore;
+    auto it = std::back_inserter(withnoscore);
+    std::vector<std::pair<std::string, double>> withscore; //通过模板类型来指定是否需要带出分数
+    auto it2 = std::back_inserter(withscore);
+    server.zrange("zset1", 0, -1, it2);
+```
+
+* `zadd`，往有序列表中加入成员和分数，依然支持前面的三种方法
+* `zrange`，遍历获取有序列表中的元素，通过不同的输出容器来间接指定是否需要获取分数
+
+2. zcard zscore zrank zrem
+
+```cpp
+	long long ret = server.zcard("zset1");
+    auto score = server.zscore("zset1", "tianqi");
+    auto rank = server.zrank("zset1", "zhangsan");
+    server.zrem("zset1", "lisi");
+```
+
+* `zcard`，获取有序集合中成员的个数
+* `zscore`，根据成员获取分数
+* `zrank`，根据成员获取排名（在整个有序列表中的数组下标）
+
+* `zrem`，删除某个有序列表中的成员
