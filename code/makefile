@@ -1,4 +1,4 @@
-all:hello generic string list set
+all:hello generic string list set hash zset
 
 hello: hello.cc
 	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
@@ -12,6 +12,10 @@ list:list.cc
 	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
 set:set.cc
 	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a
+hash:hash.cc
+	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a -g
+zset:zset.cc
+	g++ $^ -o $@ -lpthread /usr/local/lib/libredis++.a /usr/lib/x86_64-linux-gnu/libhiredis.a -g
 
 
 .PHONY: clean

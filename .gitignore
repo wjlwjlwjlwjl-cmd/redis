@@ -3,3 +3,5 @@ hello
 string
 list
 set
+hash
+zset
